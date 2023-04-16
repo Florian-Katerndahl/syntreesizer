@@ -160,7 +160,7 @@ class Scene(object):
         Turn off visibility of graph layers (i.e. streets) and set the `ground_truth_pass` attribute of parks
         to "true" which colors them white.
         
-        :param method: Should further processing/changes be applied in scene to identify trees for ground truth. Value: "shaded", "diff". Default: None.
+        :param method: Should further processing/changes be applied in scene to identify trees for ground truth. Value: "shaded", "diff", "toggle". Default: None.
         :return: None
         
         :warning: If "shaded" is specified, it is assumed that tree models are not impacted by changes to render mode and no further adjustments are needed.
@@ -185,6 +185,8 @@ class Scene(object):
         elif method == "diff":
             for tree in self.ce_object.getObjectsFrom(self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.withName(layer_name))[0]):
                 self.ce_object.setAttribute(tree, "Material_Colorize", "#ff0000")
+        elif method == "toggle":
+                self.__show_only_tree_objects()
         else:
             raise NotImplementedError("Method '" + method +"' not implemented.")
     
@@ -195,7 +197,7 @@ class Scene(object):
         Turn on visibility of graph layers (i.e. streets) and set the `ground_truth_pass` attribute of parks
         to "false" which re-colors them.
         
-        :param method: Should further processing/changes be reverted in scene which were made to identify trees for ground truth. Value: "shaded", "diff". Default: None.        
+        :param method: Should further processing/changes be reverted in scene which were made to identify trees for ground truth. Value: "shaded", "diff", "toggle". Default: None.        
         :return: None
         
         :warning: If "shaded" is specified, it is assumed that tree models are not impacted by changes to render mode and no further adjustments are needed.
@@ -220,6 +222,8 @@ class Scene(object):
         elif method == "diff":
             for tree in self.ce_object.getObjectsFrom(self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.withName(layer_name))[0]):
                 self.ce_object.setAttribute(tree, "Material_Colorize", "#ffffff")
+        elif method == "toggle":
+            self.__show_all_scene_objects()            
         else:
             raise NotImplementedError("Method '" + method +"' not implemented.")
 
@@ -927,7 +931,7 @@ class Scene(object):
         :param truth_detection_strategy: Strategy to detect trees for ground truth images in post-processing. If "shaded", the render mode is set to "MODE_SHADED" and all objects with equal 
         pixel values in all bands are regarded as non-trees; this however may lead to the loss of some pixels at boundaries of trees. If "diff", two images with unchanged render, lighting 
         and camera settings are taken. However, all models in `model_layer` are colored red; in post-processing the diff of the green and blue channel may be used to differentiate trees from non-trees. 
-        Values: shaded, diff. Default: shaded.
+        Values: shaded, diff, toggle. Default: shaded.
         :param position_noise: Add normal distributed noise to position vector before image capture. Value: bool. Default: False.
         :param position_sd: Standard deviation used when generating new position vector. Value: float. Default: 1.0.
         :param rotation_noise: Add normal distributed noise to rotation vector before image capture. Value: bool. Default: False.
@@ -973,8 +977,8 @@ class Scene(object):
                 
                 self.__setup_ground_truth_sampling(truth_detection_strategy, model_layer)
                 
-                # lighting settings for ground truth pass are hard coded, but only used if truth_detection_strategy is shaded; same for render settings (but not hard-coded)
-                if truth_detection_strategy == "shaded":
+                # lighting settings for ground truth pass are hard coded, but only used if truth_detection_strategy is shaded/toggle; same for render settings (but not hard-coded)
+                if truth_detection_strategy == "shaded" or truth_detection_strategy == "toggle":
                     self.setup_render_settings(_viewport, **render_settings[1])
                     
                     self.setup_lighting_settings(solar_elevation=90, sun_source="SUN_POSITION_SOURCE_DIRECT_ANGLE_ENTRY", shadow_quality="SHADOW_HIGH", ambient_occlusion_samples="AMBIENT_OCCLUSION_SAMPLES_HIGHEST")
