@@ -4,8 +4,8 @@ import glob
 from random import choice, random, uniform, gauss
 from math import sqrt, isnan
 from collections import OrderedDict
+import warnings
 from geometries import Point, BoundingBox, Polygon
-
 
 class Scene(object):
     def __init__(self, ce_object):
@@ -152,6 +152,76 @@ class Scene(object):
                     self.ce_object.setLayerPreferences(child, "Show Blocks", True)
             if self.ce_object.isLayerGroup(child):
                 raise RuntimeError("Layer Groups are not expected to be used")
+
+
+    @noUIupdate
+    def __setup_ground_truth_sampling(self, method, layer_name=None):
+        """
+        Turn off visibility of graph layers (i.e. streets) and set the `ground_truth_pass` attribute of parks
+        to "true" which colors them white.
+        
+        :param method: Should further processing/changes be applied in scene to identify trees for ground truth. Value: "shaded", "diff". Default: None.
+        :return: None
+        
+        :warning: If "shaded" is specified, it is assumed that tree models are not impacted by changes to render mode and no further adjustments are needed.
+        """
+        if method == "shaded":
+            root = self.ce_object.getSceneHierarchy()
+        
+            for child in root.getChildren(None):
+                if self.ce_object.isLayer(child):
+                    if self.ce_object.isGraphLayer(child):
+                        self.ce_object.setLayerPreferences(child, "Show Network", False)
+                if self.ce_object.isLayerGroup(child):
+                    raise RuntimeError("Layer Groups are not expected to be used")
+            
+            city_blocks = self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.isBlock)
+
+            for block in city_blocks:
+                 if self.ce_object.getName(block) == "park":
+                    park_shape = self.ce_object.getObjectsFrom(block, self.ce_object.isShape)
+                    self.ce_object.setAttribute(park_shape, "/ce/rule/ground_truth_pass", "true")
+        
+        elif method == "diff":
+            for tree in self.ce_object.getObjectsFrom(self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.withName(layer_name))[0]):
+                self.ce_object.setAttribute(tree, "Material_Colorize", "#ff0000")
+        else:
+            raise NotImplementedError("Method '" + method +"' not implemented.")
+    
+
+    @noUIupdate
+    def __setup_training_sampling(self, method, layer_name=None):
+        """
+        Turn on visibility of graph layers (i.e. streets) and set the `ground_truth_pass` attribute of parks
+        to "false" which re-colors them.
+        
+        :param method: Should further processing/changes be reverted in scene which were made to identify trees for ground truth. Value: "shaded", "diff". Default: None.        
+        :return: None
+        
+        :warning: If "shaded" is specified, it is assumed that tree models are not impacted by changes to render mode and no further adjustments are needed.
+        """
+        if method == "shaded":
+            root = self.ce_object.getSceneHierarchy()
+            
+            for child in root.getChildren(None):
+                if self.ce_object.isLayer(child):
+                    if self.ce_object.isGraphLayer(child):
+                        self.ce_object.setLayerPreferences(child, "Show Network", True)
+                if self.ce_object.isLayerGroup(child):
+                    raise RuntimeError("Layer Groups are not expected to be used")
+            
+            city_blocks = self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.isBlock)
+
+            for block in city_blocks:
+                 if self.ce_object.getName(block) == "park":
+                    park_shape = self.ce_object.getObjectsFrom(block, self.ce_object.isShape)
+                    self.ce_object.setAttribute(park_shape, "/ce/rule/ground_truth_pass", "false")
+                
+        elif method == "diff":
+            for tree in self.ce_object.getObjectsFrom(self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.withName(layer_name))[0]):
+                self.ce_object.setAttribute(tree, "Material_Colorize", "#ffffff")
+        else:
+            raise NotImplementedError("Method '" + method +"' not implemented.")
 
 
     def get_current_viewport(self):
@@ -416,8 +486,6 @@ class Scene(object):
 
                     self.ce_object.setName(block, "park")
 
-                    # TODO set Start rule to park!
-
             elif subdivision_intervals.get("recursive").get("lower") <= randf < subdivision_intervals.get(
                     "recursive").get("upper"):
                 self.ce_object.setAttribute(block, "/ce/block/type", subdivision_intervals.get("recursive").get("name"))
@@ -571,11 +639,13 @@ class Scene(object):
 
         self.__clear_selection()
 
+    
     def set_rule_files(self, rule_files):
         """
         Iterate over all blocks and their shapes as well as all graph nodes and graph segments (i.e. streets).
+        For parks, mark the attribute `ground_truth_pass` as set by the user.
         
-        Assign each *thing* a rule file and possibly a starting rule as well.
+        Assign each *thing* a rule file, possibly a starting rule as well and generate models.
         
         :param rule_files: Dictionary with rule files and start rule for lots.
         :return: None
@@ -586,6 +656,7 @@ class Scene(object):
             if self.ce_object.getName(block) == "park":
                 park_shape = self.ce_object.getObjectsFrom(block, self.ce_object.isShape)
                 self.ce_object.setAttribute(park_shape, "/ce/rule/ruleFile", rule_files["park"])
+                self.ce_object.setAttributeSource(park_shape, "/ce/rule/ground_truth_pass", "USER")
             else:
                 for lot in self.ce_object.getObjectsFrom(block, self.ce_object.isShape):
                     self.ce_object.setAttribute(lot, "/ce/rule/ruleFile", rule_files["lot"]["file"])
@@ -597,6 +668,11 @@ class Scene(object):
         for street_stuff in city_segments:
             for street_shape in self.ce_object.getObjectsFrom(street_stuff, self.ce_object.isShape):
                 self.ce_object.setAttribute(street_shape, "/ce/rule/ruleFile", rule_files["street"])
+        
+        
+        self.ce_object.setSelection(city_blocks + city_segments)
+        
+        self.ce_object.generateModels(self.ce_object.selection())
             
 
 
@@ -680,6 +756,9 @@ class Scene(object):
         :param wireframe_on_models: Render wireframe on shaded models. Values: True/False. Default: False.
         :return: None
         """
+        if render_mode == "MODE_SHADED":
+            warnings.warn("Setting render mode to 'MODE_SHADED' to shaded may result in loss of pixels at tree boundaries.\nThis message is only shown once per session.")
+        
         render_settings = RenderSettings()
 
         render_settings.setAmbientOcclusion(ambient_occlusion)
@@ -790,7 +869,7 @@ class Scene(object):
 
 
     def take_picture(self, _viewport, output_directory, base_name, image_uid, resolution_x, resolution_y,
-                     is_ground_truth=False):
+                     ground_truth_tag):
         """
         Save the current viewport as a png image to disk after waiting for the UI to idle.
         
@@ -800,22 +879,23 @@ class Scene(object):
         :param image_uid: Numerical identifier of image. Used to differentiate between images.
         :param resolution_x: Horizontal output resolution in pixel.
         :param resolution_y: Vertical output resolution in pixel.
-        :param is_ground_truth: Boolean indicating if the image saved is for ground truth labelling, 
-        in which case an additional string is inserted into the file name.
+        :param ground_truth_tag: String to insert in output file denoting ground truth pass or not. In the latter case, simpply specify an empty string.
         :return: None
         """
         if base_name.split('.')[-1] != "png":
             raise NotImplementedError("Only PNG export allowed.")
 
         self.ce_object.waitForUIIdle()
+        
+        self.__clear_selection()
 
         _viewport.snapshot(
-            output_directory + "\\" + str(image_uid) + ("_ground_truth" if is_ground_truth else "") + "_" + base_name,
+            output_directory + "\\" + str(image_uid) + ("_" if ground_truth_tag else "") + ground_truth_tag + "_" + base_name,
             width=resolution_x, height=resolution_y)
 
 
     def gather_tree_images(self, model_layer, _viewport, output_directory, base_name, resolution, metadata_file=None, mean_height=1200.0, mean_height_sd=0.0,
-                           lighting_settings=None, lighting_noise=False, render_settings=None, camera_settings=None, position_noise=False, position_sd=1.0,
+                           lighting_settings=None, lighting_noise=False, render_settings=None, camera_settings=None, truth_detection_strategy="shaded", position_noise=False, position_sd=1.0,
                            rotation_noise=False, rotation_sd=1.0, gsd=None):
         # TODO given the resolution (should be square) == GSD (should be square), the flight altitude can be calculated, no?
         # https://support.pix4d.com/hc/en-us/articles/202559809-Ground-sampling-distance-GSD-in-photogrammetry
@@ -844,6 +924,10 @@ class Scene(object):
         The first entry is used to set render settings before recording the training data while the second entry is used to set render settings for the 
         ground truth pass. Value: Tuple[dict]. Default: None.
         :param camera_settings: Dictionary used to set lighting options, keys need to match arguments in `Scene.setup_camera_settings`. Value: dict. Default: None.
+        :param truth_detection_strategy: Strategy to detect trees for ground truth images in post-processing. If "shaded", the render mode is set to "MODE_SHADED" and all objects with equal 
+        pixel values in all bands are regarded as non-trees; this however may lead to the loss of some pixels at boundaries of trees. If "diff", two images with unchanged render, lighting 
+        and camera settings are taken. However, all models in `model_layer` are colored red; in post-processing the diff of the green and blue channel may be used to differentiate trees from non-trees. 
+        Values: shaded, diff. Default: shaded.
         :param position_noise: Add normal distributed noise to position vector before image capture. Value: bool. Default: False.
         :param position_sd: Standard deviation used when generating new position vector. Value: float. Default: 1.0.
         :param rotation_noise: Add normal distributed noise to rotation vector before image capture. Value: bool. Default: False.
@@ -885,18 +969,19 @@ class Scene(object):
                 
                 self.setup_lighting_settings(**lighting_settings)
                 
-                self.take_picture(_viewport, output_directory, base_name, idx, resolution, resolution, is_ground_truth=False)
+                self.take_picture(_viewport, output_directory, base_name, idx, resolution, resolution, ground_truth_tag="")
                 
-                self.__show_only_tree_objects()
+                self.__setup_ground_truth_sampling(truth_detection_strategy, model_layer)
                 
-                self.setup_render_settings(_viewport, **render_settings[1])
+                # lighting settings for ground truth pass are hard coded, but only used if truth_detection_strategy is shaded; same for render settings (but not hard-coded)
+                if truth_detection_strategy == "shaded":
+                    self.setup_render_settings(_viewport, **render_settings[1])
+                    
+                    self.setup_lighting_settings(solar_elevation=90, sun_source="SUN_POSITION_SOURCE_DIRECT_ANGLE_ENTRY", shadow_quality="SHADOW_HIGH", ambient_occlusion_samples="AMBIENT_OCCLUSION_SAMPLES_HIGHEST")
                 
-                # lighting settings for ground truth pass are hard coded
-                self.setup_lighting_settings(solar_elevation=90, sun_source="SUN_POSITION_SOURCE_DIRECT_ANGLE_ENTRY", shadow_quality="SHADOW_HIGH", ambient_occlusion_samples="AMBIENT_OCCLUSION_SAMPLES_HIGHEST")
+                self.take_picture(_viewport, output_directory, base_name, idx, resolution, resolution, ground_truth_tag="gt_" + truth_detection_strategy)
                 
-                self.take_picture(_viewport, output_directory, base_name, idx, resolution, resolution, is_ground_truth=True)
-                
-                self.__show_all_scene_objects()
+                self.__setup_training_sampling(truth_detection_strategy, model_layer)
                 
                 px, py, pz = _viewport.getCameraPosition()
                 
