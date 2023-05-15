@@ -4,6 +4,10 @@
 
 ### Build Documentation
 
+### Tree Models
+
+To get you started, you can download [LumenRT Tree Models](https://hub.arcgis.com/content/e49b1fb0f56e40c19ff6e7ad4e546dad/about) or buy model-packs from [Laubwerk](htpps://laubwerk.com).
+
 ## Usage
 
 See scripts in `examples`.
