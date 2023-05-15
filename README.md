@@ -2,7 +2,11 @@
 
 ## Installation
 
+### Build Documentation
+
 ## Usage
+
+See scripts in `examples`.
 
 ## Further Notes
 
