@@ -229,7 +229,7 @@ class Scene(object):
 
 
     @noUIupdate
-    def __placements_in_streets(chunk_of_trees, model_paths):
+    def __placements_in_streets(self, chunk_of_trees, model_paths):
         """
         Process each chunk of street trees without updating the UI.
 
