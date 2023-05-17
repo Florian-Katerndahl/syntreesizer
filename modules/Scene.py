@@ -228,6 +228,82 @@ class Scene(object):
             raise NotImplementedError("Method '" + method +"' not implemented.")
 
 
+    @noUIupdate
+    def __placements_in_streets(chunk_of_trees, model_paths):
+        """
+        Process each chunk of street trees without updating the UI.
+
+        :param chunk_of_trees: List containing parameters used for placement/import of tree models
+        :param model_paths: Globbed list of all models which may be imported
+        :return: None
+        """
+        for tree in chunk_of_trees:
+            self.__clear_selection()
+
+            model_path = self.__secure_get(filter(lambda x: tree[0] in x, model_paths), 0 if len(tree[0]) > 0 else None) or choice(model_paths)
+
+            _ = self.__import_obj(
+                    model_path,
+                    True,
+                    model_path,
+                    True,
+                    [0., 0., 0.],
+                    tree[5]
+                    )
+
+            current_tree_model = self.ce_object.getObjectsFrom(self.ce_object.selection)[0]
+
+            self.ce_object.setPosition(current_tree_model, tree[1:4])
+
+            self.ce_object.rotate(current_tree_model, [0, tree[4], 0])
+
+    @noUIupdate
+    def __placements_in_block(self, block, n_trees, model_paths, min_scale, max_scale):
+        """
+        Process each city block without updating the UI. Each drawing update waits until after the placement/import is done.
+
+        :param block: Block in which trees are placed
+        :param n_trees: Number of trees that need to be placed/imported for the block
+        :param model_paths: Globbed list of all models which may be imported
+        :param min_scale: Minimum value for model's scale
+        :param max_scale: Maximum value for model's scale
+        :return: None
+        """
+        polygonized_block = Polygon(self.ce_object.getVertices(block))
+
+        bbox = polygonized_block.bbox()
+
+        trees_placed = 0
+
+        while n_trees > trees_placed:
+            self.__clear_selection()
+
+            tree_location = Point(uniform(bbox.xmin, bbox.xmax), 0., uniform(bbox.zmin, bbox.zmax))
+
+            if not polygonized_block.contains_point(tree_location):
+                continue
+
+            model_path = choice(model_paths)
+
+            _ = self.__import_obj(
+                model_path,
+                True,
+                model_path,
+                True,
+                [0., 0., 0.],
+                uniform(min_scale, max_scale)
+                )
+
+            curr_tree_model = self.ce_object.getObjectsFrom(self.ce_object.selection)[0]
+
+            self.ce_object.setPosition(curr_tree_model, [tree_location.x, tree_location.y, tree_location.z])
+
+            self.ce_object.rotate(curr_tree_model, [0, uniform(0., 360.), 0])
+
+            trees_placed += 1
+
+
+
     def get_current_viewport(self):
         return self.__secure_get(self.ce_object.get3DViews(), 0)
 
@@ -507,7 +583,7 @@ class Scene(object):
 
         self.__clear_selection()
 
-    @noUIupdate
+
     def place_street_trees(self, models_path, attribute_path, tree_layer_name="trees", sep=";"):
         """
         Given a glob-like path to a directory containing various tree models together with a file containing coordinates
@@ -522,6 +598,8 @@ class Scene(object):
         6. scale factor in x-, y- and z-direction
         
         The first column may be empty in which case a random model is chosen.
+
+        Trees are placed in chunks of 5000 models.
         
         :param models_path: Glob-like and windows-like (i.e. double backslash) absolute path to directory containing tree models.
         :param attribute_path: Absolute, windows-like (i.e. double backslash) file path to file containing tree attributes. Must be a header-less file with six
@@ -542,31 +620,18 @@ class Scene(object):
 
         trees_to_place = self.__parse_tree_attributes(attribute_path, sep, [str, float, float, float, int, float])
 
+        chunks_of_trees = [trees_to_place[sidx:sidx + 5000] for sidx in range(0, len(trees_to_place), 5000)]
+
         tree_models_glob = glob.glob(models_path)
 
-        for tree in trees_to_place:
-            self.__clear_selection()
-            
-            model_path = self.__secure_get(filter(lambda x: tree[0] in x, tree_models_glob),0 if len(tree[0]) > 0 else None) or choice(tree_models_glob)
-            
-            _ = self.__import_obj(
-                    model_path, 
-                    True,
-                    model_path, 
-                    True, 
-                   [0., 0., 0.], 
-                    tree[5]
-                 )
+        for chunk in chunks_of_trees:
+            self.__placements_in_streets(chunk, tree_models_glob)
 
-            current_tree_model = self.ce_object.getObjectsFrom(self.ce_object.selection)[0]
-
-            self.ce_object.setPosition(current_tree_model, tree[1:4])
-
-            self.ce_object.rotate(current_tree_model, [0, tree[4], 0])
+            self.ce_object.waitForUIIdle()
 
         self.__clear_selection()
 
-    @noUIupdate
+
     def place_park_trees(self, tree_density, lower_tree_density_variation, upper_tree_density_variation,
                          tree_layer_name, models_path, scale_min=0.8, scale_max=1.1, block_name="park"):
         """
@@ -590,7 +655,6 @@ class Scene(object):
         :param block_name: Name of block denoting a park. Default: "park".
         :return: None
         """
-        # TODO 
         if lower_tree_density_variation > 1:
             raise AttributeError("The attribute lower_tree_density_variation must be less than 1 (inclusive)")
 
@@ -600,7 +664,7 @@ class Scene(object):
 
         upper_density = tree_density + upper_tree_density_variation * tree_density
 
-        city_blocks = self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.isBlock)
+        city_blocks = filter(lambda x: self.ce_object.getName(x) == block_name, self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.isBlock))
 
         tree_models_glob = glob.glob(models_path)
         
@@ -610,36 +674,11 @@ class Scene(object):
             _ = self.ce_object.addStaticModelLayer(tree_layer_name)
 
         for block in city_blocks:
-            if not self.ce_object.getName(block) == block_name:
-                continue
+            number_of_trees = int(uniform(lower_density * polygonized_block.area, upper_density * polygonized_block.area))
 
-            polygonized_block = Polygon(self.ce_object.getVertices(block))
+            self.__placements_in_block(block, number_of_trees, tree_models_glob, scale_min, scale_max)
 
-            bbox = polygonized_block.bbox()
-
-            number_of_trees = int(
-                uniform(lower_density * polygonized_block.area, lower_density * polygonized_block.area))
-
-            trees_placed = 0
-
-            while trees_placed <= number_of_trees:
-                tree_location = Point(uniform(bbox.xmin, bbox.xmax), 0.0, uniform(bbox.zmin, bbox.zmax))
-
-                if not polygonized_block.contains_point(tree_location):
-                    continue
-
-                model_path = choice(tree_models_glob)
-                
-                _ = self.__import_obj(model_path, True, model_path, True, [0., 0., 0.],
-                                      uniform(scale_min, scale_max))
-
-                current_tree_model = self.ce_object.getObjectsFrom(self.ce_object.selection)[0]
-
-                self.ce_object.setPosition(current_tree_model, [tree_location.x, tree_location.y, tree_location.z])
-
-                self.ce_object.rotate(current_tree_model, [0, uniform(0.0, 360.0), 0])
-
-                trees_placed += 1
+            self.ce_object.waitForUIIdle()
 
         self.__clear_selection()
 
