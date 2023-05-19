@@ -258,12 +258,13 @@ class Scene(object):
             self.ce_object.rotate(current_tree_model, [0, tree[4], 0])
 
     @noUIupdate
-    def __placements_in_block(self, block, n_trees, model_paths, min_scale, max_scale):
+    def __placements_in_block(self, block, ld, ud, model_paths, min_scale, max_scale):
         """
         Process each city block without updating the UI. Each drawing update waits until after the placement/import is done.
 
         :param block: Block in which trees are placed
-        :param n_trees: Number of trees that need to be placed/imported for the block
+        :param ld: Lower density of trees per block
+        :param ud: Upper density of trees per block
         :param model_paths: Globbed list of all models which may be imported
         :param min_scale: Minimum value for model's scale
         :param max_scale: Maximum value for model's scale
@@ -274,6 +275,8 @@ class Scene(object):
         bbox = polygonized_block.bbox()
 
         trees_placed = 0
+
+        n_trees = int(uniform(ld * polygonized_block.area, ud * polygonized_block.area))
 
         while n_trees > trees_placed:
             self.__clear_selection()
@@ -674,9 +677,7 @@ class Scene(object):
             _ = self.ce_object.addStaticModelLayer(tree_layer_name)
 
         for block in city_blocks:
-            number_of_trees = int(uniform(lower_density * polygonized_block.area, upper_density * polygonized_block.area))
-
-            self.__placements_in_block(block, number_of_trees, tree_models_glob, scale_min, scale_max)
+            self.__placements_in_block(block, lower_density, upper_density, tree_models_glob, scale_min, scale_max)
 
             self.ce_object.waitForUIIdle()
 
