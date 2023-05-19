@@ -1,5 +1,7 @@
 # syntreesizer
 
+![logo](./logo.png)
+
 ## Installation
 
 ### Build Documentation
