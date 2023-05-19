@@ -5,7 +5,7 @@ from random import choice, random, uniform, gauss
 from math import sqrt, isnan
 from collections import OrderedDict
 import warnings
-from geometries import Point, BoundingBox, Polygon
+from Geometries import Point, BoundingBox, Polygon
 
 class Scene(object):
     def __init__(self, ce_object):
