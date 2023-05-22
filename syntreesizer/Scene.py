@@ -940,7 +940,7 @@ class Scene(object):
 
     def gather_tree_images(self, model_layer, _viewport, output_directory, base_name, resolution, metadata_file=None, mean_height=1200.0, mean_height_sd=0.0,
                            lighting_settings=None, lighting_noise=False, render_settings=None, camera_settings=None, truth_detection_strategy="shaded", position_noise=False, position_sd=1.0,
-                           rotation_noise=False, rotation_sd=1.0, gsd=None):
+                           rotation_noise=False, rotation_sd=1.0, gsd=None, max_export=None):
         # TODO given the resolution (should be square) == GSD (should be square), the flight altitude can be calculated, no?
         # https://support.pix4d.com/hc/en-us/articles/202559809-Ground-sampling-distance-GSD-in-photogrammetry
         # the focal length can always be calculated, given the perspective mode is active: For a standard rectilinear(!!!!) lens, FOV = 2 arctan x/2f, where x is the diagonal of the film. 
@@ -977,6 +977,8 @@ class Scene(object):
         :param rotation_noise: Add normal distributed noise to rotation vector before image capture. Value: bool. Default: False.
         :param rotation_sd: Standard deviation used when generating new rotation vector. Value: float. Default: 1.0.
         :param gsd: Set the ground resolution distance of output imagery. Currently not implemented. Value: None.
+        :param max_export: Set the maximum number of images to be captured. If None, the default, all trees models are captured.
+        Specifying a number larger than the total models in the scene is equivalent to setting this value to None.
         :return: None
         """
         # TODO Graph Network visibility needs to be turned off manually!
@@ -987,11 +989,15 @@ class Scene(object):
             raise NotImplementedError("Setting ground sampling distance from withing `gather_tree_images` not implemented.")
         
         failed_models = 0
+        models_captured = 0
         
         with open(metadata_file, "wt") if metadata_file is not None else tf.TemporaryFile() as f:
             f.write("id,pos_x,pos_y,pos_z,rot_x,rot_y,rot_z,perspective,fov\n")
         
             for idx, model_to_capture in enumerate(self.ce_object.getObjectsFrom(self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.withName(model_layer))[0])):
+                if max_export is not None and models_captured > max_export:
+                    break
+
                 _ = self.ce_object.setSelection(model_to_capture)
 
                 model_position = self.ce_object.getPosition(model_to_capture)
@@ -1032,6 +1038,8 @@ class Scene(object):
                 rx, ry, rz = _viewport.getCameraRotation()
                 
                 f.write("%d,%f,%f,%f,%f,%f,%f,%d,%f\n" % (idx, px, py, pz, rx, ry, rz, _viewport.getCameraPerspective(), _viewport.getCameraAngleOfView()))
+
+                models_captured += 1
             
         print("Failed to capture %d model%s." % (failed_models, "s" if failed_models == 0 or failed_models > 1 else ""))
 
