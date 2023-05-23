@@ -995,7 +995,7 @@ class Scene(object):
             f.write("id,pos_x,pos_y,pos_z,rot_x,rot_y,rot_z,perspective,fov\n")
         
             for idx, model_to_capture in enumerate(self.ce_object.getObjectsFrom(self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.withName(model_layer))[0])):
-                if max_export is not None and models_captured > max_export:
+                if max_export is not None and models_captured >= max_export:
                     break
 
                 _ = self.ce_object.setSelection(model_to_capture)
