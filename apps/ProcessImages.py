@@ -1,10 +1,16 @@
 import multiprocessing
-from syntreesizer import images
+from syntreesizer import Images
 import re
 from pathlib import Path
 from collections import defaultdict
 from multiprocessing import Pool
 from sys import argv
+
+def filter_train(x: Path):
+    return "gt" not in str(x)
+
+def filter_valid(x: Path):
+    return "gt" in str(x)
 
 if len(argv) != 2:
     print(f"ERROR: Expected one argument, got {len(argv) - 1}.\n")
@@ -29,8 +35,8 @@ for key, values in grouped_files.items():
     if len(values) != 2:
         print("Non matching images omitted\n")
         continue
-    normal_captures.append(values[0])
-    gt_captures.append(values[1])
+    normal_captures.append(*filter(filter_valid, values))
+    gt_captures.append(*filter(filter_valid, values))
 
 del grouped_files
 
@@ -38,7 +44,7 @@ if __name__ == "__main__":
     multiprocessing.freeze_support()
 
     with Pool() as pool:
-        results = pool.imap_unordered(images.Image.contained_processing_chain, zip(normal_captures, gt_captures))
+        results = pool.imap_unordered(Images.Image.contained_processing_chain, zip(normal_captures, gt_captures))
 
         for _ in results:
             pass
