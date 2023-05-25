@@ -1,5 +1,5 @@
 import multiprocessing
-from syntreesizer import images
+from syntreesizer import Images
 import re
 from pathlib import Path
 from collections import defaultdict
@@ -9,7 +9,7 @@ from sys import argv
 if len(argv) != 2:
     print(f"ERROR: Expected one argument, got {len(argv) - 1}.\n")
     print("Usage:\n"
-          "python3 -c ProcessImages.py <dir>\n\n"
+          "python3 ProcessImages.py <dir>\n\n"
           "<dir>\tAbsolute path to directory containing exported images from CityEngine (both training and ground "
           "truth passes)")
     exit(1)
@@ -38,7 +38,7 @@ if __name__ == "__main__":
     multiprocessing.freeze_support()
 
     with Pool() as pool:
-        results = pool.imap_unordered(images.Image.contained_processing_chain, zip(normal_captures, gt_captures))
+        results = pool.imap_unordered(Images.Image.contained_processing_chain, zip(normal_captures, gt_captures))
 
         for _ in results:
             pass
