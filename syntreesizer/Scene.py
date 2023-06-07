@@ -5,6 +5,7 @@ from random import choice, random, uniform, gauss
 from math import sqrt, isnan
 from collections import OrderedDict
 import warnings
+import os
 from Geometries import Point, BoundingBox, Polygon
 
 class Scene(object):
@@ -990,6 +991,9 @@ class Scene(object):
 
         if truth_detection_strategy == "shaded":
             raise NotImplementedError("Using 'shaded' for ground truth detection is not correctly implemented")
+        
+        if not os.access(output_directory, os.F_OK):
+            os.mkdir(output_directory)
         
         failed_models = 0
         models_captured = 0
