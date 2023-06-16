@@ -5,6 +5,7 @@ from random import choice, random, uniform, gauss
 from math import sqrt, isnan
 from collections import OrderedDict
 import warnings
+import os
 from Geometries import Point, BoundingBox, Polygon
 
 class Scene(object):
@@ -991,6 +992,9 @@ class Scene(object):
         if truth_detection_strategy == "shaded":
             raise NotImplementedError("Using 'shaded' for ground truth detection is not correctly implemented")
         
+        if not os.access(output_directory, os.F_OK):
+            os.mkdir(output_directory)
+        
         failed_models = 0
         models_captured = 0
         
@@ -998,7 +1002,7 @@ class Scene(object):
             f.write("id,pos_x,pos_y,pos_z,rot_x,rot_y,rot_z,perspective,fov\n")
         
             for idx, model_to_capture in enumerate(self.ce_object.getObjectsFrom(self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.withName(model_layer))[0])):
-                if max_export is not None and models_captured >= (max_export - 1):
+                if max_export is not None and models_captured > (max_export - 1):
                     break
 
                 _ = self.ce_object.setSelection(model_to_capture)
