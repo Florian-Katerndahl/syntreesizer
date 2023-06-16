@@ -6,11 +6,14 @@ from collections import defaultdict
 from multiprocessing import Pool
 from sys import argv
 
+
 def filter_train(x: Path):
     return "gt" not in str(x)
 
+
 def filter_valid(x: Path):
     return "gt" in str(x)
+
 
 if len(argv) != 2:
     print(f"ERROR: Expected one argument, got {len(argv) - 1}.\n")
@@ -35,7 +38,7 @@ for key, values in grouped_files.items():
     if len(values) != 2:
         print("Non matching images omitted\n")
         continue
-    normal_captures.append(*filter(filter_valid, values))
+    normal_captures.append(*filter(filter_train, values))
     gt_captures.append(*filter(filter_valid, values))
 
 del grouped_files
