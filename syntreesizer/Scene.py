@@ -700,19 +700,19 @@ class Scene(object):
         for block in city_blocks:
             if self.ce_object.getName(block) == "park":
                 park_shape = self.ce_object.getObjectsFrom(block, self.ce_object.isShape)
-                self.ce_object.setAttribute(park_shape, "/ce/rule/ruleFile", rule_files["park"])
+                self.ce_object.setRuleFile(park_shape, rule_files["park"])
                 self.ce_object.setAttributeSource(park_shape, "/ce/rule/ground_truth_pass", "USER")
             else:
                 for lot in self.ce_object.getObjectsFrom(block, self.ce_object.isShape):
-                    self.ce_object.setAttribute(lot, "/ce/rule/ruleFile", rule_files["lot"]["file"])
-                    self.ce_object.setAttribute(lot, "/ce/rule/startRule", rule_files["lot"]["start"])
+                    self.ce_object.setRuleFile(lot, rule_files["lot"]["file"])
+                    self.ce_object.setStartRule(lot, rule_files["lot"]["start"])
         
         city_segments = self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.isGraphNode) + \
         self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.isGraphSegment)
         
         for street_stuff in city_segments:
             for street_shape in self.ce_object.getObjectsFrom(street_stuff, self.ce_object.isShape):
-                self.ce_object.setAttribute(street_shape, "/ce/rule/ruleFile", rule_files["street"])
+                self.ce_object.setRuleFile(street_shape, rule_files["street"])
         
         
         self.ce_object.setSelection(city_blocks + city_segments)
