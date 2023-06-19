@@ -717,6 +717,11 @@ class Scene(object):
         
         self.ce_object.waitForUIIdle()
         
+        # the calls above to `setRuleFile` do not reliably render/generate objects
+        self.ce_object.generateModels(self.ce_object.getObjectsFrom(self.ce_object.scene))
+        
+        self.ce_object.waitForUIIdle()
+        
         self.__clear_selection()
 
 
