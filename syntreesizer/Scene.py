@@ -708,17 +708,12 @@ class Scene(object):
                     self.ce_object.setStartRule(lot, rule_files["lot"]["start"])
         
         city_segments = self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.isGraphNode) + \
-        self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.isGraphSegment)
+        self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.isGraphSegment) + \
+        filter(lambda x: self.ce_object.getAttribute(x, "shapeType") == "Sidewalk", self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.isShape))
         
-        for street_stuff in city_segments:
-            for street_shape in self.ce_object.getObjectsFrom(street_stuff, self.ce_object.isShape):
-                self.ce_object.setRuleFile(street_shape, rule_files["street"])
+        self.ce_object.setRuleFIle(rule_files["street"])
         
-        
-        self.ce_object.setSelection(city_blocks + city_segments)
-        
-        self.ce_object.generateModels(self.ce_object.selection())
-            
+        self.ce_object.waitForUIIdle()
 
 
     def setup_lighting_settings(self, ambient_intensity=0.5, ambient_occlusion_attenuation=0.6, ambient_occlusion_radius=5.0,
