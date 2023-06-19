@@ -713,7 +713,7 @@ class Scene(object):
         self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.isGraphSegment) + \
         filter(lambda x: self.ce_object.getAttribute(x, "shapeType") == "Sidewalk", self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.isShape))
         
-        self.ce_object.setRuleFile(rule_files["street"])
+        self.ce_object.setRuleFile(city_segments, rule_files["street"])
         
         self.ce_object.waitForUIIdle()
         
