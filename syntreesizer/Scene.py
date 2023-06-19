@@ -695,6 +695,8 @@ class Scene(object):
         :param rule_files: Dictionary with rule files and start rule for lots.
         :return: None
         """
+        self.ce_object.__clear_selection()
+        
         city_blocks = self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.isBlock)
         
         for block in city_blocks:
@@ -711,9 +713,11 @@ class Scene(object):
         self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.isGraphSegment) + \
         filter(lambda x: self.ce_object.getAttribute(x, "shapeType") == "Sidewalk", self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.isShape))
         
-        self.ce_object.setRuleFIle(rule_files["street"])
+        self.ce_object.setRuleFile(rule_files["street"])
         
         self.ce_object.waitForUIIdle()
+        
+        self.ce_object.__clear_selection()
 
 
     def setup_lighting_settings(self, ambient_intensity=0.5, ambient_occlusion_attenuation=0.6, ambient_occlusion_radius=5.0,
