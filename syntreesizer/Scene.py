@@ -229,7 +229,7 @@ class Scene(object):
             raise NotImplementedError("Method '" + method +"' not implemented.")
 
 
-    @noUIupdate
+#    @noUIupdate
     def __placements_in_streets(self, chunk_of_trees, model_paths):
         """
         Process each chunk of street trees without updating the UI.
@@ -248,7 +248,7 @@ class Scene(object):
                     True,
                     model_path,
                     True,
-                    [0., 0., 0.],
+                    [0.0, 0.0, 0.0],
                     tree[5]
                     )
 
@@ -258,7 +258,7 @@ class Scene(object):
 
             self.ce_object.rotate(current_tree_model, [0, tree[4], 0])
 
-    @noUIupdate
+#    @noUIupdate
     def __placements_in_block(self, block, ld, ud, model_paths, min_scale, max_scale):
         """
         Process each city block without updating the UI. Each drawing update waits until after the placement/import is done.
@@ -282,7 +282,7 @@ class Scene(object):
         while n_trees > trees_placed:
             self.__clear_selection()
 
-            tree_location = Point(uniform(bbox.xmin, bbox.xmax), 0., uniform(bbox.zmin, bbox.zmax))
+            tree_location = Point(uniform(bbox.xmin, bbox.xmax), 0.0, uniform(bbox.zmin, bbox.zmax))
 
             if not polygonized_block.contains_point(tree_location):
                 continue
@@ -294,7 +294,7 @@ class Scene(object):
                 True,
                 model_path,
                 True,
-                [0., 0., 0.],
+                [0.0, 0.0, 0.0],
                 uniform(min_scale, max_scale)
                 )
 
