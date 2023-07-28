@@ -229,7 +229,7 @@ class Scene(object):
             raise NotImplementedError("Method '" + method +"' not implemented.")
 
 
-#    @noUIupdate
+    @noUIupdate
     def __placements_in_streets(self, chunk_of_trees, model_paths):
         """
         Process each chunk of street trees without updating the UI.
@@ -238,6 +238,8 @@ class Scene(object):
         :param model_paths: Globbed list of all models which may be imported
         :return: None
         """
+        failed_imports = []
+        
         for tree in chunk_of_trees:
             self.__clear_selection()
 
@@ -248,17 +250,49 @@ class Scene(object):
                     True,
                     model_path,
                     True,
-                    [0.0, 0.0, 0.0],
+                    [0., 0., 0.],
                     tree[5]
                     )
+            try:
+                current_tree_model = self.ce_object.getObjectsFrom(self.ce_object.selection)[0]
 
-            current_tree_model = self.ce_object.getObjectsFrom(self.ce_object.selection)[0]
+                self.ce_object.setPosition(current_tree_model, tree[1:4])
 
-            self.ce_object.setPosition(current_tree_model, tree[1:4])
+                self.ce_object.rotate(current_tree_model, [0, tree[4], 0])
+            except IndexError:
+                print("Index Error was raised; Adding tree to queue to try again later with (potentially with new tree model).")
+                
+                failed_imports.append(tree)
+                
+                next
+        
+        for previously_failed_tree in failed_imports:
+            print("Trying to place previously unimported previously_failed_tree")
+            
+            self.__clear_selection()
 
-            self.ce_object.rotate(current_tree_model, [0, tree[4], 0])
+            model_path = self.__secure_get(filter(lambda x: previously_failed_tree[0] in x, model_paths), 0 if len(previously_failed_tree[0]) > 0 else None) or choice(model_paths)
 
-#    @noUIupdate
+            _ = self.__import_obj(
+                    model_path,
+                    True,
+                    model_path,
+                    True,
+                    [0., 0., 0.],
+                    previously_failed_tree[5]
+                    )
+            try:
+                current_previously_failed_tree_model = self.ce_object.getObjectsFrom(self.ce_object.selection)[0]
+
+                self.ce_object.setPosition(current_previously_failed_tree_model, previously_failed_tree[1:4])
+
+                self.ce_object.rotate(current_previously_failed_tree_model, [0, previously_failed_tree[4], 0])
+            except IndexError:
+                print("Index Error was raised again; Skipping previously_failed_tree model location.")
+                
+                next
+
+    @noUIupdate
     def __placements_in_block(self, block, ld, ud, model_paths, min_scale, max_scale):
         """
         Process each city block without updating the UI. Each drawing update waits until after the placement/import is done.
@@ -282,7 +316,7 @@ class Scene(object):
         while n_trees > trees_placed:
             self.__clear_selection()
 
-            tree_location = Point(uniform(bbox.xmin, bbox.xmax), 0.0, uniform(bbox.zmin, bbox.zmax))
+            tree_location = Point(uniform(bbox.xmin, bbox.xmax), 0., uniform(bbox.zmin, bbox.zmax))
 
             if not polygonized_block.contains_point(tree_location):
                 continue
@@ -294,15 +328,20 @@ class Scene(object):
                 True,
                 model_path,
                 True,
-                [0.0, 0.0, 0.0],
+                [0., 0., 0.],
                 uniform(min_scale, max_scale)
                 )
+            
+            try:
+                curr_tree_model = self.ce_object.getObjectsFrom(self.ce_object.selection)[0]
 
-            curr_tree_model = self.ce_object.getObjectsFrom(self.ce_object.selection)[0]
+                self.ce_object.setPosition(curr_tree_model, [tree_location.x, tree_location.y, tree_location.z])
 
-            self.ce_object.setPosition(curr_tree_model, [tree_location.x, tree_location.y, tree_location.z])
-
-            self.ce_object.rotate(curr_tree_model, [0, uniform(0., 360.), 0])
+                self.ce_object.rotate(curr_tree_model, [0, uniform(0., 360.), 0])
+            except IndexError:
+                print("Index Error was raised; re-trying tree placement with a new position")
+                
+                next
 
             trees_placed += 1
 
@@ -588,7 +627,7 @@ class Scene(object):
         self.__clear_selection()
 
 
-    def place_street_trees(self, models_path, attribute_path, tree_layer_name="trees", sep=";"):
+    def place_street_trees(self, models_path, attribute_path, tree_layer_name="trees", sep=";", chunk_size=42):
         """
         Given a glob-like path to a directory containing various tree models together with a file containing coordinates
         and other attributes, places tree objects in tree_layer.
@@ -603,13 +642,14 @@ class Scene(object):
         
         The first column may be empty in which case a random model is chosen.
 
-        Trees are placed in chunks of 5000 models.
+        Trees are placed in chunks of chunk_size models.
         
         :param models_path: Glob-like and windows-like (i.e. double backslash) absolute path to directory containing tree models.
         :param attribute_path: Absolute, windows-like (i.e. double backslash) file path to file containing tree attributes. Must be a header-less file with six
         columns: optional model name, x-, y- and z-coordinates, rotation in degrees and scale. 
         :param tree_layer_name: Name of Layer in which tree objects should be placed. Will be created, if not present.
         :param sep: Separator used in attribute file. Default: ';'.
+        :para chunk_size: Number of trees per placed chunk. Street trees are placed in chunks, only after which they are rendered. Default: 42.
         :return: None
         """
         self.__clear_selection()
@@ -624,7 +664,7 @@ class Scene(object):
 
         trees_to_place = self.__parse_tree_attributes(attribute_path, sep, [str, float, float, float, int, float])
 
-        chunks_of_trees = [trees_to_place[sidx:sidx + 5000] for sidx in range(0, len(trees_to_place), 5000)]
+        chunks_of_trees = [trees_to_place[sidx:sidx + int(chunk_size)] for sidx in range(0, len(trees_to_place), int(chunk_size))]
 
         tree_models_glob = glob.glob(models_path)
 
@@ -934,9 +974,9 @@ class Scene(object):
         if base_name.split('.')[-1] != "png":
             raise NotImplementedError("Only PNG export allowed.")
 
-        self.ce_object.waitForUIIdle()
-        
         self.__clear_selection()
+        
+        self.ce_object.waitForUIIdle()
 
         _viewport.snapshot(
             output_directory + "\\" + str(image_uid) + ("_" if ground_truth_tag else "") + ground_truth_tag + "_" + base_name,
