@@ -376,7 +376,7 @@ class Scene(object):
 
 
     # TODO to publish under GLP-v3, I need to come up with original wording for parameters!!! + ! ! ! 
-    def generate_street_network(self, initial_network=True, street_layer_name=None, grow_outwards=True,
+    def generate_street_network(self, initial_network=True, street_layer_name=None, force_outwards_growth=True,
                                 number_of_streets=500,
                                 major_pattern="ORGANIC", minor_pattern="RASTER", long_length=150.0,
                                 long_length_deviation=50.0, short_length=80.0, short_length_deviation=20.0,
@@ -399,7 +399,7 @@ class Scene(object):
         :param initial_network: Is the street network the initial network of the scene or is an existing layer to be
         extended. Values: True/False.
         :param street_layer_name: The name of the street network layer to be created or extended. Value: string.
-        :param grow_outwards: When growing additional streets on layer, should the starting node be guarantueed to
+        :param force_outwards_growth: When growing additional streets on layer, should the starting node be guarantueed to
         be at the edge of the existing graph networt. Values: True/False.
         :param number_of_streets: Number of streets to generate (due to intersections, more objects may emerge).
         Value: int.
@@ -474,7 +474,7 @@ class Scene(object):
                 if self.ce_object.getAttribute(node, "valency") == 1:
                     potential_starting_nodes.append(node)
 
-            if grow_outwards:
+            if force_outwards_growth:
                 potential_starting_nodes = self.__compute_absolute_distance(potential_starting_nodes)
 
                 potential_starting_nodes = filter(lambda x: x[1] > max(sum([3.5, 0.5, sidewalk_maximum_width]),
@@ -484,7 +484,7 @@ class Scene(object):
 
             self.__clear_selection()
             self.ce_object.setSelection(
-                choice(potential_starting_nodes)[0] if grow_outwards else choice(potential_starting_nodes))
+                choice(potential_starting_nodes)[0] if force_outwards_growth else choice(potential_starting_nodes))
 
         street_settings = GrowStreetsSettings()
 
@@ -535,7 +535,7 @@ class Scene(object):
             street_settings.setStreetWidthSettingsSidewalkWidthDeviationOfMinorStreets(minor_sidewalk_width_deviation)
 
         self.ce_object.growStreets(
-            self.ce_object.selection() if not initial_network and grow_outwards else street_layer, street_settings)
+            self.ce_object.selection() if not initial_network and force_outwards_growth else street_layer, street_settings)
         self.__clear_selection()
 
     @noUIupdate
