@@ -1,10 +1,12 @@
+<img width="40%" src="logo.png" align="right">
+
 # syntreesizer
 
-![logo](./logo.png)
+syntreesizer tries to offer a consistent interface to the ArcGIS CityEngine.
 
 ## Installation
 
-To get started, simply copy over the Scripts `Geometry.py` and `Scene.py` into the `scripts`-folder of your ArcGIS CityEngine project and append your `$PATH` variable:
+To get started, simply copy over the Scripts `Geometry.py` and `Scene.py` into the `scripts`-folder of your ArcGIS CityEngine project and append your `PATH` variable:
 
 ```python
 sys.path.append(ce.toFSPath("scripts"))
@@ -45,7 +47,7 @@ vp = scene.get_current_viewport()
 
 scene.export_as_shape_file("streets", "data/experiment_1_street_network.shp")
 
-_ = input("run R script\n")
+_ = input("run R script\n") # place trees on sidewalk
 
 scene.place_street_trees("assets/Plants/**/*Model_0.obj", "data/experiment_1_tree_attributes.txt")
 
