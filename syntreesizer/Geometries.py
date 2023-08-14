@@ -51,6 +51,8 @@ class Polygon(object):
     def __sort_counter_clockwise(self):
         """
         """
+        warnings.warn("Sorting order does not result in different result! Should be -area for clockwise ordering; Result is somehow still correct.", RuntimeWarning)
+
         mean_x = sum(p.x for p in self.coordinates) / len(self.coordinates)
         
         mean_z = sum(p.z for p in self.coordinates) / len(self.coordinates)
@@ -61,7 +63,7 @@ class Polygon(object):
         
         angles = [acos((p.x * centroid.x + p.z * centroid.z) / (sqrt(p.x ** 2 + p.z ** 2) * sqrt(centroid.x ** 2 + centroid.y ** 2))) for p in self.coordinates]
         
-        self.coordinates = [c for _, c in sorted(zip(angles, self.coordinates), key=lambda x: x[0])]  # TODO sorting order does not result in different result? Should be -area for clockwise ordering
+        self.coordinates = [c for _, c in sorted(zip(angles, self.coordinates), key=lambda x: x[0])]
 
 
     def __vertices_to_coordinates(self):
@@ -88,7 +90,7 @@ class Polygon(object):
 
 
     @property
-    def area(self):  # TODO make a property, not a method
+    def area(self):
         """
         """
         if not self.coordinates:
@@ -143,8 +145,8 @@ class Polygon(object):
             
         return inside
         
-    
-    def bbox(self):  # TODO make a property, not a method
+    @property
+    def bbox(self):
         """
         Calculate the bounding box of a given polygon in x, y, and z direction.
         

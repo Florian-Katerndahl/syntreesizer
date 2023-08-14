@@ -10,16 +10,18 @@ from Geometries import Point, BoundingBox, Polygon
 
 class Scene(object):
     def __init__(self, ce_object):
+        warnings.warn("Graph Network visibility needs to be turned off manually.", UserWarning)
         self.ce_object = ce_object
 
     @noUIupdate
     def __compute_absolute_distance(self, graph_end_nodes):
-    # TODO re-implement via point class?
         """
         Calculate the euclidian distance between a graph node and all existing blocks.
         :param graph_end_nodes: List of graph nodes.
         :return: List of tuples containing graph node and minimal computed distance to block.
         """
+        warnings.warn("Coputing distances between nodes and block edges may be re-implemented via Geometry-class.", FutureWarning)
+
         mega_blocks = self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.isBlock)
 
         nodes_and_distances = list()
@@ -105,7 +107,7 @@ class Scene(object):
 
         obj_settings.setAlignToTerrain(align_to_terrain)
 
-        obj_settings.setFile(file)  # TODO what is this option?
+        obj_settings.setFile(file)
 
         obj_settings.setImportAsStaticModel(import_as_static)
 
@@ -312,7 +314,7 @@ class Scene(object):
         """
         polygonized_block = Polygon(self.ce_object.getVertices(block))
 
-        bbox = polygonized_block.bbox()
+        bbox = polygonized_block.bbox
 
         trees_placed = 0
 
@@ -380,7 +382,6 @@ class Scene(object):
         self.ce_object.export(graph, export_settings)
 
 
-    # TODO to publish under GLP-v3, I need to come up with original wording for parameters!!! + ! ! ! 
     def generate_street_network(self, initial_network=True, street_layer_name=None, force_outwards_growth=True,
                                 number_of_streets=500,
                                 major_pattern="ORGANIC", minor_pattern="RASTER", long_length=150.0,
@@ -776,7 +777,6 @@ class Scene(object):
                               ambient_occlusion_samples="AMBIENT_OCCLUSION_SAMPLES_INTERACTIVE", light_month=6, light_time_zone=0, light_time=12.0, radius_mode="RADIUS_MODE_INTERACTIVE",
                               shadow_attenuation=0.3, shadow_quality="SHADOW_INTERACTIVE", solar_azimuth=120.0, solar_elevation=50.0, solar_intensity=0.8,
                               sun_source="SUN_POSITION_SOURCE_DIRECT_ANGLE_ENTRY"):
-                              # TODO what about environment map and reflection map?
         """
         Set lighting settings for the current CityEngine scene.
 
@@ -799,8 +799,9 @@ class Scene(object):
         :param sun_source: Should the sun position be calculated from manual entries or based on date and time. Values: 
         "SUN_POSITION_SOURCE_TIME_DATE", "SUN_POSITION_SOURCE_DIRECT_ANGLE_ENTRY". Default: "SUN_POSITION_SOURCE_DIRECT_ANGLE_ENTRY".
         :return: None
+
+        :warning: No contraints are checked for the parameters.
         """
-        # TODO implement contraints check
         light_settings = self.ce_object.getLighting()
 
         light_settings.setAmbientIntensity(ambient_intensity)
@@ -825,9 +826,6 @@ class Scene(object):
         light_settings.setSolarIntensity(solar_intensity)
 
         self.ce_object.setLighting(light_settings)
-
-    def setup_viewport(self):  # TODO all options from here seem to be split into other functions (rendering, camera position, etc.)
-        pass
 
     
     def setup_render_settings(self, _viewport, ambient_occlusion=True, axes_visible=True, cull_backfaces=False, compass_visible=False,
@@ -993,15 +991,7 @@ class Scene(object):
     def gather_tree_images(self, model_layer, _viewport, output_directory, base_name, resolution, metadata_file=None, mean_height=1200.0, mean_height_sd=0.0,
                            lighting_settings=None, lighting_noise=False, render_settings=None, camera_settings=None, truth_detection_strategy="shaded", position_noise=False, position_sd=1.0,
                            rotation_noise=False, rotation_sd=1.0, gsd=None, max_export=None):
-        # TODO given the resolution (should be square) == GSD (should be square), the flight altitude can be calculated, no?
-        # https://support.pix4d.com/hc/en-us/articles/202559809-Ground-sampling-distance-GSD-in-photogrammetry
-        # the focal length can always be calculated, given the perspective mode is active: For a standard rectilinear(!!!!) lens, FOV = 2 arctan x/2f, where x is the diagonal of the film. 
-            # for orthographic mode (parallel projection) the calculation doesn't make sense -right https://blender.stackexchange.com/questions/264155/what-is-orthographic-focal-length ? It is possible nonetheless because a FOV value is returned and my orthopictures are also orthorectified
-        # Macht das ueberhaupt einen Unterschied, solange ich einfach gerade nach unten gucke?
-        # Kann ich fue die sensor-width nicht einfach einen Wert annehmen (etwa 40mm) und die resolution ist meine image resolution?
-        # Aktuelle Umsetzung fuer ground_truth geht eigentlich nur mit segmentierung
         """
-        
         :param model_layer: Name of layer from which models are gathered. Value: str.
         :param _viewport: 3D viewport object to use for capturing images. Value: viewport object.
         :param output_directory: Absolute windows-like path to directory where images are saved. Value: str.
@@ -1033,7 +1023,6 @@ class Scene(object):
         Specifying a number larger than the total models in the scene is equivalent to setting this value to None.
         :return: None
         """
-        # TODO Graph Network visibility needs to be turned off manually!
         if lighting_noise:
             raise NotImplementedError("lighting noise not implemented.")
         
@@ -1102,16 +1091,11 @@ class Scene(object):
         print("Failed to capture %d model%s." % (failed_models, "s" if failed_models == 0 or failed_models > 1 else ""))
 
 
-    def gsd_height_sampling(self, _viewport, output_directory):
+    def gsd_height_sampling(self):
         """
-        Interactively take pictures to correlate the height with GSD.
-        
-        :param _viewport: Viewport, whose current camera view is saved to disk.
-        :param output_directory: Absolute windows-like path to directory where images are saved.
-        :return: None
+        given the resolution (should be square) == GSD (should be square), the flight altitude can be calculated, no?
+        https://support.pix4d.com/hc/en-us/articles/202559809-Ground-sampling-distance-GSD-in-photogrammetry
+        the focal length can always be calculated, given the perspective mode is active: For a standard rectilinear(!!!!) lens, FOV = 2 arctan x/2f, where x is the diagonal of the film.
+            for orthographic mode (parallel projection) the calculation doesn't make sense -right https://blender.stackexchange.com/questions/264155/what-is-orthographic-focal-length ? It is possible nonetheless because a FOV value is returned and my orthopictures are also orthorectified
         """
-        height = _viewport.getCameraPosition()
-        
-        print(height)
-        
-        self.take_picture(_viewport, output_directory, "city_trees.png", height, -1, -1, False)
+        raise NotImplementedError
