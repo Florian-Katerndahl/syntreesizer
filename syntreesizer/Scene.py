@@ -62,7 +62,7 @@ class Scene(object):
         except TypeError:
             return None
 
-    def __parse_tree_attributes(self, path, sep, blueprint):
+    def __parse_tree_attributes(self, path, sep, blueprint, skips):
         """
         
         :param path:
@@ -75,6 +75,11 @@ class Scene(object):
         f = open(path, "rt")
 
         n_cols = len(blueprint)
+
+        if skips is not None and isinstance(skips, int) and skips > 0:
+            skipped = 0
+            while skipped < skips:
+                _ = f.readline()
 
         while True:
             line = f.readline()
@@ -627,7 +632,7 @@ class Scene(object):
         self.__clear_selection()
 
 
-    def place_street_trees(self, models_path, attribute_path, tree_layer_name="trees", sep=";", chunk_size=42):
+    def place_street_trees(self, models_path, attribute_path, tree_layer_name="trees", sep=";", chunk_size=42, skip_entries=None):
         """
         Given a glob-like path to a directory containing various tree models together with a file containing coordinates
         and other attributes, places tree objects in tree_layer.
@@ -649,7 +654,9 @@ class Scene(object):
         columns: optional model name, x-, y- and z-coordinates, rotation in degrees and scale. 
         :param tree_layer_name: Name of Layer in which tree objects should be placed. Will be created, if not present.
         :param sep: Separator used in attribute file. Default: ';'.
-        :para chunk_size: Number of trees per placed chunk. Street trees are placed in chunks, only after which they are rendered. Default: 42.
+        :param chunk_size: Number of trees per placed chunk. Street trees are placed in chunks, only after which they are rendered. Default: 42.
+        :param skip_entries: Skip specified number of lines. Note, that the lines are 0-indexd; thus if `skip_entries=2`, the next line read will have the
+        index 2 and be the third line of the text file. NOTE: SKIPPING THE FIRST LINE (i.e. `skip_entries=0`) DOES NOT WORK. Default: None.
         :return: None
         """
         self.__clear_selection()
@@ -662,7 +669,7 @@ class Scene(object):
 
         tree_layer = self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.withName(tree_layer_name))[0]
 
-        trees_to_place = self.__parse_tree_attributes(attribute_path, sep, [str, float, float, float, int, float])
+        trees_to_place = self.__parse_tree_attributes(attribute_path, sep, [str, float, float, float, int, float], skip_entries)
 
         chunks_of_trees = [trees_to_place[sidx:sidx + int(chunk_size)] for sidx in range(0, len(trees_to_place), int(chunk_size))]
 
