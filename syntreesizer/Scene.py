@@ -64,6 +64,12 @@ class Scene(object):
         except TypeError:
             return None
 
+    def __get_from_selection(self):
+        """
+        Safely get the first object in the current selection.
+        """
+        return self.__secure_get(self.ce_object.getObjecsFrom(self.ce_object.selection()))
+
     def __parse_tree_attributes(self, path, sep, blueprint, skips):
         """
         
@@ -191,8 +197,8 @@ class Scene(object):
                     self.ce_object.setAttribute(park_shape, "/ce/rule/ground_truth_pass", "true")
         
         elif method == "diff":
-            for tree in self.ce_object.getObjectsFrom(self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.withName(layer_name))[0]):
-                self.ce_object.setAttribute(tree, "Material_Colorize", "#ff0000")
+            tree_layer = self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.withName(layer_name))[0]
+            self.ce_object.setLayerPreferences(tree_layer, "Color", "#ff0000")
         elif method == "toggle":
                 self.__show_only_tree_objects()
         else:
@@ -228,8 +234,8 @@ class Scene(object):
                     self.ce_object.setAttribute(park_shape, "/ce/rule/ground_truth_pass", "false")
                 
         elif method == "diff":
-            for tree in self.ce_object.getObjectsFrom(self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.withName(layer_name))[0]):
-                self.ce_object.setAttribute(tree, "Material_Colorize", "#ffffff")
+            tree_layer = self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.withName(layer_name))[0]
+            self.ce_object.setLayerPreferences(tree_layer, "Color", "#ffffff")
         elif method == "toggle":
             self.__show_all_scene_objects()            
         else:
@@ -1037,7 +1043,7 @@ class Scene(object):
         
         failed_models = 0
         models_captured = 0
-        
+
         with open(metadata_file, "wt") if metadata_file is not None else tf.TemporaryFile() as f:
             f.write("id,pos_x,pos_y,pos_z,rot_x,rot_y,rot_z,perspective,fov\n")
         
