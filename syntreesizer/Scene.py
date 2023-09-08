@@ -359,6 +359,24 @@ class Scene(object):
             trees_placed += 1
 
 
+    def __remove_dead_ends(end_node):
+        """
+        Starting from `end_nod` search all connected graph nodes that lie along the same road leading up to a dead end.
+
+        :param end_node: dead end which serves as the starting point for node removal.
+        :return: List of nodes along road.
+        """
+        prev_segment = None
+        ret = []
+
+        while self.ce_object.getAttribute(end_node, "valency") < 3:
+            ret.append(end_node)
+            connected_segments = self.ce_object.getObjectsFrom(end_node, self.ce_object.isGraphSegment)
+            prev_segment = connected_segments[0] if not prev_segment else list(filter(lambda x: self.ce_object.getOID(x) != self.ce_object.getOID(prev_segment), connected_segments))[0]
+            end_node = list(filter(lambda x: self.ce_object.getPosition(x) != self.ce_object.getPosition(end_node), self.ce_object.getObjectsFrom(prev_segment, self.ce_object.isGraphNode)))[0]
+    
+        return ret
+
 
     def get_current_viewport(self):
         return self.__secure_get(self.ce_object.get3DViews(), 0)
@@ -401,7 +419,8 @@ class Scene(object):
                                 sidewalk_minimum_width=2.0,
                                 sidewalk_maximum_width=5.0, major_lanes_minimum=3, major_lanes_maximum=5,
                                 major_sidewalk_width=3.0, major_sidewalk_width_deviation=1.0, minor_lanes_minimum=1,
-                                minor_lanes_maximum=4, minor_sidewalk_width=2.0, minor_sidewalk_width_deviation=0.5):
+                                minor_lanes_maximum=4, minor_sidewalk_width=2.0, minor_sidewalk_width_deviation=0.5,
+                                finalize=False):
         """
         Programmatically generate a street network in the ESRI CityEngine. It is possible to choose between the initial
         network creation, i.e. no street layer exists, or extend an existing one. Please note that depending on the
@@ -465,6 +484,7 @@ class Scene(object):
         :param minor_lanes_maximum: The number of lanes on the widest minor street. Value: int.
         :param minor_sidewalk_width: Average width of minor street sidewalks. Value: float.
         :param minor_sidewalk_width_deviation: Width deviation of minor street sidewalks. Value: float.
+        :param finalize: Remove Roads leading to dead ends.
         :return: None
         """
         if street_layer_name is None:
@@ -548,6 +568,14 @@ class Scene(object):
 
         self.ce_object.growStreets(
             self.ce_object.selection() if not initial_network and force_outwards_growth else street_layer, street_settings)
+        self.__clear_selection()
+
+        if finalize:
+            dead_ends = [i for i in self.ce_object.getObjectsFrom(self.ce_object.sself.ce_object.e, self.ce_object.isGraphNode) if self.ce_object.getAttribute(i, "valency") == 1]
+
+            for dead_end in dead_ends:
+                self.ce_object.delete(self.__remove_dead_ends(dead_end))
+        
         self.__clear_selection()
 
     @noUIupdate
