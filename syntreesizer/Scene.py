@@ -320,7 +320,7 @@ class Scene(object):
         """
         polygonized_block = Polygon(self.ce_object.getVertices(block))
 
-        bbox = polygonized_block.bbox
+        bbox = polygonized_block.bbox()
 
         trees_placed = 0
 
