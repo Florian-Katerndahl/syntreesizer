@@ -359,7 +359,7 @@ class Scene(object):
             trees_placed += 1
 
 
-    def __remove_dead_ends(end_node):
+    def __remove_dead_ends(self, end_node):
         """
         Starting from `end_nod` search all connected graph nodes that lie along the same road leading up to a dead end.
 
@@ -571,7 +571,7 @@ class Scene(object):
         self.__clear_selection()
 
         if finalize:
-            dead_ends = [i for i in self.ce_object.getObjectsFrom(self.ce_object.sself.ce_object.e, self.ce_object.isGraphNode) if self.ce_object.getAttribute(i, "valency") == 1]
+            dead_ends = [i for i in self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.isGraphNode) if self.ce_object.getAttribute(i, "valency") == 1]
 
             for dead_end in dead_ends:
                 self.ce_object.delete(self.__remove_dead_ends(dead_end))
