@@ -8,6 +8,17 @@ import warnings
 import os
 from Geometries import Point, BoundingBox, Polygon
 
+def once(f):
+    """
+    Courtesy of https://stackoverflow.com/a/4104188
+    """
+    def wrapper(*args, **kwargs):
+        if not wrapper.has_run:
+            wrapper.has_run = True
+            return f(*args, **kwargs)
+    wrapper.has_run = False
+    return wrapper
+
 class Scene(object):
     def __init__(self, ce_object):
         warnings.warn("Graph Network visibility needs to be turned off manually.", UserWarning)
@@ -167,6 +178,14 @@ class Scene(object):
             if self.ce_object.isLayerGroup(child):
                 raise RuntimeError("Layer Groups are not expected to be used")
 
+    @once
+    def __set_layer_color(self, layer_name, color=[1.0, 0.0, 0.0]):
+        """
+        Get Layer by name and assign color
+        """
+        tree_layer = self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.withName(layer_name))[0]
+        self.ce_object.setLayerPreferences(tree_layer, "Color", color)
+        
 
     @noUIupdate
     def __setup_ground_truth_sampling(self, method, layer_name=None):
@@ -197,8 +216,9 @@ class Scene(object):
                     self.ce_object.setAttribute(park_shape, "/ce/rule/ground_truth_pass", "true")
         
         elif method == "diff":
+            self.__set_layer_color(layer_name)
             tree_layer = self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.withName(layer_name))[0]
-            self.ce_object.setLayerPreferences(tree_layer, "Color", "#ff0000")
+            self.ce_object.setLayerPreferences(tree_layer, "Colored", True)
         elif method == "toggle":
                 self.__show_only_tree_objects()
         else:
@@ -235,7 +255,7 @@ class Scene(object):
                 
         elif method == "diff":
             tree_layer = self.ce_object.getObjectsFrom(self.ce_object.scene, self.ce_object.withName(layer_name))[0]
-            self.ce_object.setLayerPreferences(tree_layer, "Color", "#ffffff")
+            self.ce_object.setLayerPreferences(tree_layer, "Colored", False)
         elif method == "toggle":
             self.__show_all_scene_objects()            
         else:
